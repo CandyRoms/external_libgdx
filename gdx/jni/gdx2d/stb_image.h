@@ -6064,10 +6064,15 @@ static float *stbi__hdr_load(stbi__context *s, int *x, int *y, int *comp, int re
                   // Run
                   value = stbi__get8(s);
                   count -= 128;
+                  if (count >= width - i) {
+                     STBI_FREE(hdr_data);
+                     STBI_FREE(scanline);
+                     return stbi__errpf("invalid buffer size", "corrupt HDR");
+                  }
                   for (z = 0; z < count; ++z)
                      scanline[i++ * 4 + k] = value;
                } else {
-                  if (count > len) {
+                  if (count >= width - i) {
                      STBI_FREE(hdr_data);
                      STBI_FREE(scanline);
                      return stbi__errpf("invalid buffer size", "corrupt HDR");
