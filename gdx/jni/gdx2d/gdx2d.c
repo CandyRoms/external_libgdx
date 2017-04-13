@@ -17,6 +17,9 @@
 #include "stb_image.h"
 #include "jpgd_c.h"
 
+#include <android/log.h>
+#define APP_LOG "GDX"
+
 static uint32_t gdx2d_blend = GDX2D_BLEND_NONE;
 static uint32_t gdx2d_scale = GDX2D_SCALE_NEAREST;
 
@@ -358,8 +361,24 @@ static inline void clear_RGBA4444(const gdx2d_pixmap* pixmap, uint32_t col) {
 	}
 }
 
-void gdx2d_clear(const gdx2d_pixmap* pixmap, uint32_t col) {	
+void gdx2d_clear(const gdx2d_pixmap* pixmap, uint32_t col) {
+	if (pixmap == 0)
+		return;
+
 	col = to_format(pixmap->format, col);
+
+	// Check for malformed Pixmap
+	size_t requestedSize = pixmap->width * pixmap->height * sizeof(col);
+	size_t pixelsSize = sizeof(pixmap->pixels);
+	if (requestedSize > pixelsSize) {
+		__android_log_print(ANDROID_LOG_VERBOSE,
+		APP_LOG, "Invalid pixmap. %ix%i - Size should be %u but found %u",
+		pixmap->width,
+		pixmap->height,
+		requestedSize,
+		pixelsSize);
+		return;
+	}
 
 	switch(pixmap->format) {
 		case GDX2D_FORMAT_ALPHA:
