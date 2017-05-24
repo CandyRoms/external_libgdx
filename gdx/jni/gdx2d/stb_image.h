@@ -965,6 +965,9 @@ static unsigned char *stbi__load_main(stbi__context *s, int *x, int *y, int *com
    #ifndef STBI_NO_HDR
    if (stbi__hdr_test(s)) {
       float *hdr = stbi__hdr_load(s, x,y,comp,req_comp);
+      if (hdr == NULL) {
+         return NULL;
+      }
       return stbi__hdr_to_ldr(hdr, *x, *y, req_comp ? req_comp : *comp);
    }
    #endif
@@ -6046,7 +6049,11 @@ static float *stbi__hdr_load(stbi__context *s, int *x, int *y, int *comp, int re
          }
          len <<= 8;
          len |= stbi__get8(s);
-         if (len != width) { STBI_FREE(hdr_data); STBI_FREE(scanline); return stbi__errpf("invalid decoded scanline length", "corrupt HDR"); }
+         if (len != width) {
+            STBI_FREE(hdr_data);
+            STBI_FREE(scanline);
+            return stbi__errpf("invalid decoded scanline length", "corrupt HDR");
+         }
          if (scanline == NULL) scanline = (stbi_uc *) stbi__malloc(width * 4);
 
          for (k = 0; k < 4; ++k) {
@@ -6057,9 +6064,19 @@ static float *stbi__hdr_load(stbi__context *s, int *x, int *y, int *comp, int re
                   // Run
                   value = stbi__get8(s);
                   count -= 128;
+                  if (count >= width - i) {
+                     STBI_FREE(hdr_data);
+                     STBI_FREE(scanline);
+                     return stbi__errpf("invalid buffer size", "corrupt HDR");
+                  }
                   for (z = 0; z < count; ++z)
                      scanline[i++ * 4 + k] = value;
                } else {
+                  if (count >= width - i) {
+                     STBI_FREE(hdr_data);
+                     STBI_FREE(scanline);
+                     return stbi__errpf("invalid buffer size", "corrupt HDR");
+                  }
                   // Dump
                   for (z = 0; z < count; ++z)
                      scanline[i++ * 4 + k] = stbi__get8(s);

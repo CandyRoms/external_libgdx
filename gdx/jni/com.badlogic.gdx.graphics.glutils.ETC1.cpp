@@ -1,4 +1,7 @@
 #include <com.badlogic.gdx.graphics.glutils.ETC1.h>
+#include <android/log.h>
+
+#define APP_LOG "GDX"
 
 //@line:196
 
@@ -86,9 +89,29 @@ JNIEXPORT void JNICALL Java_com_badlogic_gdx_graphics_glutils_ETC1_decodeImage(J
 
 //@line:249
 
-		etc1_decode_image((etc1_byte*)compressedData + offset, (etc1_byte*)decodedData + offsetDec, width, height, pixelSize, width * pixelSize);
-	
+	// Nothing to decode, or no target
+	if (compressedData == 0 || decodedData == 0) {
+		__android_log_print(ANDROID_LOG_VERBOSE, APP_LOG, "Invalid buffers, null pointer.");
+		return;
+	}
 
+	/// Verify if requested bounds are valid
+	jlong compressedLength = env->GetDirectBufferCapacity(obj_compressedData);
+	jlong decodedLength = env->GetDirectBufferCapacity(obj_decodedData);
+	if (offset < 0 || compressedLength - offset > decodedLength - offsetDec) {
+		__android_log_print(ANDROID_LOG_VERBOSE,
+			APP_LOG, "Invalid buffers, would cause heap overflow. %lu > %lu",
+			compressedLength - offset,
+			decodedLength - offsetDec);
+		return;
+	}
+
+	etc1_decode_image((etc1_byte*)compressedData + offset,
+		(etc1_byte*)decodedData + offsetDec,
+		width,
+		height,
+		pixelSize,
+		width * pixelSize);
 }
 
 static inline jobject wrapped_Java_com_badlogic_gdx_graphics_glutils_ETC1_encodeImage
